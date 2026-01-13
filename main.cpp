@@ -6,6 +6,7 @@
 #include <complex>
 #include <cassert>
 #include <iostream>
+#include <math.h>
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -25,7 +26,10 @@ void drawMandelbrot(QImage& image) {
                 ++iter;
             }
             int color = (iter == MAX_ITER) ? 0 : (255 * iter / MAX_ITER);
-            image.setPixelColor(x, y, QColor(color, color, color));
+            image.setPixelColor(x, y, QColor(
+                                    std::clamp(color * 2, 0, 255),
+                                    std::clamp(color, 0, 255),
+                                    0));
         }
     }
 }
@@ -34,7 +38,7 @@ void drawMandelbrot(QImage& image) {
 void drawJulia(QImage& image) {
     assert(image.width() == WIDTH && image.height() == HEIGHT); // Отладочная проверка
 
-    std::complex<double> c(-0.8, 0.156); // Константа для Джулии
+    std::complex<double> c(0.285, 0.); // Константа для Джулии
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
             std::complex<double> z(-2.0 + (x / double(WIDTH)) * 4.0, -1.5 + (y / double(HEIGHT)) * 3.0);
@@ -44,14 +48,22 @@ void drawJulia(QImage& image) {
                 ++iter;
             }
             int color = (iter == MAX_ITER) ? 0 : (255 * iter / MAX_ITER);
-            image.setPixelColor(x, y, QColor(0, color, 255 - color));
+            image.setPixelColor(x, y, QColor(
+                                    std::clamp(color * 2, 0, 255),
+                                    std::clamp(color, 0, 255),
+                                    0));
+
         }
     }
 }
 
 // Функция для снежинки Коха (рекурсивный фрактал)
-void drawKochCurve(QPainter& painter, QPointF p1, QPointF p2, int depth) {
+void drawKochCurve(QPainter& painter, QPointF p1, QPointF p2, int depth, int maxDepth) {
     if (depth == 0) {
+        int hue = static_cast<int>((p1.x() + p1.y()) * 0.5) % 360;
+
+        painter.setPen(QPen(QColor::fromHsv(hue, 255, 255), 1));
+
         painter.drawLine(p1, p2);
         return;
     }
@@ -60,10 +72,10 @@ void drawKochCurve(QPainter& painter, QPointF p1, QPointF p2, int depth) {
     QPointF p4 = p2 - delta;
     QPointF p5 = p3 + QPointF(-delta.y(), delta.x()) * std::sqrt(3.0) / 2.0 + delta / 2.0; // Поворот на 60 градусов
 
-    drawKochCurve(painter, p1, p3, depth - 1);
-    drawKochCurve(painter, p3, p5, depth - 1);
-    drawKochCurve(painter, p5, p4, depth - 1);
-    drawKochCurve(painter, p4, p2, depth - 1);
+    drawKochCurve(painter, p1, p3, depth - 1, maxDepth);
+    drawKochCurve(painter, p3, p5, depth - 1, maxDepth);
+    drawKochCurve(painter, p5, p4, depth - 1, maxDepth);
+    drawKochCurve(painter, p4, p2, depth - 1, maxDepth);
 }
 
 void drawKochSnowflake(QImage& image) {
@@ -73,14 +85,14 @@ void drawKochSnowflake(QImage& image) {
     painter.setPen(QPen(Qt::white, 1));
     painter.fillRect(0, 0, WIDTH, HEIGHT, Qt::black);
 
-    int depth = 5; // Глубина рекурсии
+    int depth = 10;
     QPointF p1(100, HEIGHT / 2 + 200);
     QPointF p2(WIDTH - 100, HEIGHT / 2 + 200);
     QPointF p3(WIDTH / 2, HEIGHT / 2 - 200 * std::sqrt(3.0) / 2.0);
 
-    drawKochCurve(painter, p1, p2, depth);
-    drawKochCurve(painter, p2, p3, depth);
-    drawKochCurve(painter, p3, p1, depth);
+    drawKochCurve(painter, p1, p2, depth, depth);
+    drawKochCurve(painter, p2, p3, depth, depth);
+    drawKochCurve(painter, p3, p1, depth, depth);
 }
 
 int main(int argc, char *argv[]) {
