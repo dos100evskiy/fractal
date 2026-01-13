@@ -2,7 +2,7 @@ name: Build FractalsQt
 
 on:
   push:
-    brenches: [**]
+    branches: [**]
   pull_request:
     branches: [ main ]
 
